@@ -38,7 +38,7 @@ recognition.onresult = async (event) => {
   const text = event.results[0][0].transcript.toLowerCase();
   status.innerText = text;
 
-  await addDoc(collection(db, "memories"), {
+  await addDoc(collection(db, "users", user.uid, "memories"), {
     text: text,
     timestamp: Date.now()
   });
