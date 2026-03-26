@@ -1,38 +1,44 @@
 body {
   margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, #4facfe, #00f2fe);
-  color: #fff;
+  font-family: Arial;
+  background: #0b0f2f;
+  color: white;
   text-align: center;
 }
 
 .container {
-  padding: 40px 20px;
+  padding: 30px 20px;
 }
 
 h1 {
   font-size: 28px;
+}
+
+.tagline {
+  color: #aaa;
   margin-bottom: 30px;
 }
 
-.mic-btn {
-  padding: 15px 25px;
-  font-size: 18px;
-  border: none;
-  border-radius: 30px;
-  background: #ffffff;
-  color: #333;
+#micCircle {
+  width: 140px;
+  height: 140px;
+  background: #6c5ce7;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 50px;
+  margin: 20px auto;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 0 30px rgba(108,92,231,0.6);
 }
 
-.mic-btn.listening {
+#micCircle.active {
   background: red;
-  color: white;
 }
 
 .ask-box {
-  margin-top: 30px;
+  margin-top: 20px;
 }
 
 input {
@@ -44,30 +50,13 @@ input {
 
 button {
   padding: 10px 15px;
-  margin: 5px;
   border-radius: 10px;
   border: none;
-  cursor: pointer;
+  margin-left: 5px;
 }
 
 #result {
   margin-top: 20px;
   font-size: 18px;
-  font-weight: bold;
-}
-
-#status {
-  margin-top: 10px;
-}
-
-#toast {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: black;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 20px;
-  display: none;
+  color: #00ffcc;
 }
