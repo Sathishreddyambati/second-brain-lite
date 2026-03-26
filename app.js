@@ -65,7 +65,7 @@ async function searchMemory() {
     return;
   }
 
-  const snapshot = await getDocs(collection(db, "memories"));
+  const snapshot = await getDocs(collection(db, "users", user.uid, "memories"));
 
   let found = null;
 
