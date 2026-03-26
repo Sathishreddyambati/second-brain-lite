@@ -93,37 +93,30 @@ async function searchMemory() {
 function formatAnswer(text) {
   let clean = text.toLowerCase();
 
-  // remove extra words
+  // remove starting words
   clean = clean.replace("i kept", "").trim();
 
-  // extract object + location properly
-  let objectPart = "";
-  let locationPart = "";
+  // find keyword (in/on/at)
+  let keyword = "";
+  if (clean.includes(" in ")) keyword = "in";
+  else if (clean.includes(" on ")) keyword = "on";
+  else if (clean.includes(" at ")) keyword = "at";
 
-  if (clean.includes("in")) {
-    const parts = clean.split("in");
-    objectPart = parts[0];
-    locationPart = parts[1];
-  } else if (clean.includes("on")) {
-    const parts = clean.split("on");
-    objectPart = parts[0];
-    locationPart = parts[1];
-  } else if (clean.includes("at")) {
-    const parts = clean.split("at");
-    objectPart = parts[0];
-    locationPart = parts[1];
-  }
+  if (!keyword) return clean;
 
-  // clean object
-  let object = objectPart.replace("my", "").trim();
+  const parts = clean.split(` ${keyword} `);
 
-  // clean location
-  let location = locationPart
+  let object = parts[0]
     .replace("my", "")
     .replace("the", "")
     .trim();
 
-  return `${object} is in ${location}`;
+  let location = parts[1]
+    .replace("my", "")
+    .replace("the", "")
+    .trim();
+
+  return `${object} is ${keyword} ${location}`;
 }
 
 // 🔊 SPEAK
