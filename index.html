@@ -1,33 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Second Brain Lite</title>
+  <title>Second Brain</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container">
 
-  <h1>🧠 Second Brain Lite</h1>
+  <h1>🧠 Second Brain</h1>
+  <p class="tagline">Never forget anything again</p>
 
-  <!-- SAVE MIC -->
-  <button id="recordBtn" class="mic-btn">🎤 Tap to Remember</button>
-  <p id="status"></p>
-  <p id="textOutput"></p>
+  <!-- MIC BUTTON -->
+  <div id="micCircle">🎤</div>
+  <p id="status">Tap to record a memory</p>
 
   <!-- ASK -->
   <div class="ask-box">
-    <input type="text" id="query" placeholder="Ask your brain...">
+    <input type="text" id="query" placeholder="Ask something...">
     <button onclick="searchMemory()">Ask</button>
-    <button id="askMicBtn">🎤</button>
   </div>
 
+  <!-- RESULT -->
   <p id="result"></p>
 
 </div>
-
-<!-- TOAST -->
-<div id="toast"></div>
 
 <script type="module" src="app.js"></script>
 
