@@ -14,14 +14,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Speech setup
+// Speech
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const recognition = new SpeechRecognition();
 
 const mic = document.getElementById("micCircle");
 const status = document.getElementById("status");
 
-// 🎤 CLICK MIC
+// 🎤 RECORD MEMORY
 mic.onclick = () => {
   recognition.start();
   mic.classList.add("active");
@@ -33,8 +33,8 @@ recognition.onresult = async (event) => {
   const text = event.results[0][0].transcript.toLowerCase();
   status.innerText = text;
 
-  const object = getObject(text);
-  const location = getLocation(text);
+  const object = extractObject(text);
+  const location = extractLocation(text);
 
   if (!object || !location) {
     speak("I couldn't understand");
@@ -52,22 +52,21 @@ recognition.onresult = async (event) => {
   mic.classList.remove("active");
 };
 
-// 🧠 OBJECT EXTRACTION (FIXED)
-function getObject(text) {
+// 🧠 OBJECT EXTRACTION (STRONG FIX)
+function extractObject(text) {
   const words = text.split(" ");
 
   const ignore = [
-    "i","kept","my","in","on","at","the",
-    "a","an"
+    "i","kept","my","in","on","at","the","a","an"
   ];
 
   const colors = [
     "red","blue","green","black","white","yellow","pink"
   ];
 
-  for (let word of words) {
-    if (!ignore.includes(word) && !colors.includes(word)) {
-      return word.trim();
+  for (let w of words) {
+    if (!ignore.includes(w) && !colors.includes(w)) {
+      return w.trim();
     }
   }
 
@@ -75,7 +74,7 @@ function getObject(text) {
 }
 
 // 📍 LOCATION EXTRACTION
-function getLocation(text) {
+function extractLocation(text) {
   let loc = null;
 
   if (text.includes("in")) loc = text.split("in")[1];
@@ -87,7 +86,7 @@ function getLocation(text) {
   return loc.replace("my", "").replace("the", "").trim();
 }
 
-// 🔍 SEARCH (FIXED)
+// 🔍 SEARCH MEMORY (FIXED PROPERLY)
 async function searchMemory() {
   const query = document.getElementById("query").value.toLowerCase();
 
@@ -109,7 +108,10 @@ async function searchMemory() {
   snapshot.forEach(doc => {
     const data = doc.data();
 
-    if (data.object && data.object.toLowerCase() === object) {
+    if (
+      data.object &&
+      data.object.toLowerCase().trim() === object.trim()
+    ) {
       if (!latest || data.timestamp > latest.timestamp) {
         latest = data;
       }
