@@ -1,82 +1,110 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔥 YOUR FIREBASE CONFIG
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDW1OHe8pfRrJFM1UUaIkCca57CppVJD3k",
   authDomain: "secondbrain-87cd7.firebaseapp.com",
   projectId: "secondbrain-87cd7",
   storageBucket: "secondbrain-87cd7.firebasestorage.app",
   messagingSenderId: "414645241950",
-  appId: "1:414645241950:web:dbeca811bc59ad56404ccf",
-  measurementId: "G-1JGYEEBJML"
+  appId: "1:414645241950:web:dbeca811bc59ad56404ccf"
 };
 
-// 🚀 Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 🎤 Speech Recognition Setup
+// 🎤 Speech
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const recognition = new SpeechRecognition();
 
-// Button click → start recording
-document.getElementById("recordBtn").onclick = () => {
+const recordBtn = document.getElementById("recordBtn");
+
+// 🎙️ Start recording
+recordBtn.onclick = () => {
+  recordBtn.innerText = "🎙️ Listening...";
   recognition.start();
 };
 
-// When speech is captured
+// 🎙️ When speech received
 recognition.onresult = async (event) => {
-  const text = event.results[0][0].transcript;
+  const text = event.results[0][0].transcript.toLowerCase();
   document.getElementById("textOutput").innerText = text;
 
-  const keywords = text.toLowerCase().split(" ");
+  // 🔥 Extract object + location
+  const object = extractObject(text);
+  const location = extractLocation(text);
 
-  try {
-    await addDoc(collection(db, "memories"), {
-      text: text,
-      keywords: keywords,
-      timestamp: Date.now()
-    });
-
-    speak("Saved successfully");
-  } catch (error) {
-    console.error("Error saving:", error);
-    speak("Error saving data");
+  if (!object || !location) {
+    speak("I couldn't understand properly");
+    recordBtn.innerText = "🎤 Speak";
+    return;
   }
+
+  await addDoc(collection(db, "memories"), {
+    object,
+    location,
+    text,
+    timestamp: Date.now()
+  });
+
+  recordBtn.innerText = "🎤 Speak";
+  speak("Saved successfully");
 };
 
-// 🔍 SEARCH FUNCTION
+// 🔍 EXTRACT OBJECT
+function extractObject(text) {
+  const words = text.split(" ");
+  const ignore = ["i", "kept", "my", "in", "at", "on"];
+
+  for (let word of words) {
+    if (!ignore.includes(word)) {
+      return word;
+    }
+  }
+  return null;
+}
+
+// 📍 EXTRACT LOCATION
+function extractLocation(text) {
+  if (text.includes("in")) {
+    return text.split("in")[1].trim();
+  }
+  return null;
+}
+
+// 🔍 SEARCH
 async function searchMemory() {
   const query = document.getElementById("query").value.toLowerCase();
 
-  try {
-    const snapshot = await getDocs(collection(db, "memories"));
+  const object = extractObject(query);
 
-    let found = "I couldn't find anything";
+  const snapshot = await getDocs(collection(db, "memories"));
 
-    snapshot.forEach(doc => {
-      const data = doc.data();
+  let found = null;
 
-      if (data.keywords.some(k => query.includes(k))) {
-        found = data.text;
-      }
-    });
+  snapshot.forEach(doc => {
+    const data = doc.data();
 
-    document.getElementById("result").innerText = found;
-    speak(found);
+    if (data.object === object) {
+      found = data;
+    }
+  });
 
-  } catch (error) {
-    console.error("Error fetching:", error);
-    speak("Error retrieving data");
+  let resultText = "I couldn't find it";
+
+  if (found) {
+    resultText = `Your ${found.object} is in ${found.location}`;
   }
+
+  document.getElementById("result").innerText = resultText;
+  speak(resultText);
 }
 
-// 🔊 TEXT TO SPEECH
+// 🔊 SPEAK
 function speak(text) {
   const msg = new SpeechSynthesisUtterance(text);
   speechSynthesis.speak(msg);
 }
 
-// Make function accessible from HTML
 window.searchMemory = searchMemory;
