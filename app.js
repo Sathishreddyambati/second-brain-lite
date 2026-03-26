@@ -1,6 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+const user = JSON.parse(localStorage.getItem("user"));
+
+if (!user) {
+  window.location.href = "login.html";
+}
 // Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDW1OHe8pfRrJFM1UUaIkCca57CppVJD3k",
