@@ -88,23 +88,35 @@ async function searchMemory() {
 function formatAnswer(text) {
   let clean = text.toLowerCase();
 
-  let location = "";
+  // remove extra words
+  clean = clean.replace("i kept", "").trim();
 
-  if (clean.includes("in")) location = clean.split("in")[1];
-  else if (clean.includes("on")) location = clean.split("on")[1];
-  else if (clean.includes("at")) location = clean.split("at")[1];
+  // extract object + location properly
+  let objectPart = "";
+  let locationPart = "";
 
-  location = location?.replace("my", "").replace("the", "").trim();
-
-  let object = "";
-
-  if (clean.includes("my")) {
-    object = clean.split("my")[1]
-      .split("in")[0]
-      .split("on")[0]
-      .split("at")[0]
-      .trim();
+  if (clean.includes("in")) {
+    const parts = clean.split("in");
+    objectPart = parts[0];
+    locationPart = parts[1];
+  } else if (clean.includes("on")) {
+    const parts = clean.split("on");
+    objectPart = parts[0];
+    locationPart = parts[1];
+  } else if (clean.includes("at")) {
+    const parts = clean.split("at");
+    objectPart = parts[0];
+    locationPart = parts[1];
   }
+
+  // clean object
+  let object = objectPart.replace("my", "").trim();
+
+  // clean location
+  let location = locationPart
+    .replace("my", "")
+    .replace("the", "")
+    .trim();
 
   return `${object} is in ${location}`;
 }
