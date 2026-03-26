@@ -42,58 +42,50 @@ recognition.onresult = async (event) => {
   mic.classList.remove("active");
 };
 
-// 🧠 SIMPLE AI MATCHING FUNCTION
-function scoreMatch(query, text) {
-  const qWords = query.split(" ");
-  const tWords = text.split(" ");
-
-  let score = 0;
-
-  qWords.forEach(q => {
-    tWords.forEach(t => {
-      // match singular/plural + partial
-      if (t.includes(q) || q.includes(t)) {
-        score++;
-      }
-    });
-  });
-
-  return score;
+// 🧠 EXTRACT OBJECT FROM QUESTION
+function extractObjectFromQuery(query) {
+  if (query.includes("my")) {
+    return query.split("my")[1].trim().split(" ")[0];
+  }
+  return null;
 }
 
-// 🔍 SEARCH (AI SMART)
+// 🔍 SEARCH (VERY STRONG FIX)
 async function searchMemory() {
   const query = document.getElementById("query").value.toLowerCase();
 
+  const object = extractObjectFromQuery(query);
+
+  if (!object) {
+    document.getElementById("result").innerText = "❌ Couldn't understand";
+    return;
+  }
+
   const snapshot = await getDocs(collection(db, "memories"));
 
-  let best = null;
-  let bestScore = 0;
+  let bestMatch = null;
 
   snapshot.forEach(doc => {
     const data = doc.data();
 
-    const score = scoreMatch(query, data.text);
-
-    if (score > bestScore) {
-      bestScore = score;
-      best = data;
+    // 🔥 STRICT MATCH: must contain object
+    if (data.text.includes(object)) {
+      bestMatch = data;
     }
   });
 
   let answer = "❌ Not found";
 
-  if (best && bestScore > 0) {
-    answer = formatAnswer(best.text);
+  if (bestMatch) {
+    answer = formatAnswer(bestMatch.text);
   }
 
   document.getElementById("result").innerText = answer;
   speak(answer);
 }
 
-// 🧠 FORMAT NICE ANSWER
+// 🧠 FORMAT ANSWER
 function formatAnswer(text) {
-  // extract location after in/on/at
   let location = "";
 
   if (text.includes("in")) location = text.split("in")[1];
@@ -102,9 +94,11 @@ function formatAnswer(text) {
 
   location = location?.replace("my", "").trim();
 
-  // extract object (last word before in/on)
-  let object = text.split("in")[0].split("on")[0].split("at")[0];
-  object = object.replace("i kept", "").replace("my", "").trim();
+  let object = "";
+
+  if (text.includes("my")) {
+    object = text.split("my")[1].split("in")[0].split("on")[0].split("at")[0].trim();
+  }
 
   return `${object} is in ${location}`;
 }
