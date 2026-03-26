@@ -28,23 +28,13 @@ mic.onclick = () => {
   status.innerText = "Listening...";
 };
 
-// 🎙️ RESULT
+// 🎙️ SAVE MEMORY
 recognition.onresult = async (event) => {
   const text = event.results[0][0].transcript.toLowerCase();
   status.innerText = text;
 
-  const object = extractObject(text);
-  const location = extractLocation(text);
-
-  if (!object || !location) {
-    speak("I couldn't understand");
-    mic.classList.remove("active");
-    return;
-  }
-
   await addDoc(collection(db, "memories"), {
-    object,
-    location,
+    text: text,
     timestamp: Date.now()
   });
 
@@ -52,80 +42,71 @@ recognition.onresult = async (event) => {
   mic.classList.remove("active");
 };
 
-// 🧠 OBJECT EXTRACTION (STRONG FIX)
-function extractObject(text) {
-  const words = text.split(" ");
+// 🧠 SIMPLE AI MATCHING FUNCTION
+function scoreMatch(query, text) {
+  const qWords = query.split(" ");
+  const tWords = text.split(" ");
 
-  const ignore = [
-    "i","kept","my","in","on","at","the","a","an"
-  ];
+  let score = 0;
 
-  const colors = [
-    "red","blue","green","black","white","yellow","pink"
-  ];
+  qWords.forEach(q => {
+    tWords.forEach(t => {
+      // match singular/plural + partial
+      if (t.includes(q) || q.includes(t)) {
+        score++;
+      }
+    });
+  });
 
-  for (let w of words) {
-    if (!ignore.includes(w) && !colors.includes(w)) {
-      return w.trim();
-    }
-  }
-
-  return null;
+  return score;
 }
 
-// 📍 LOCATION EXTRACTION
-function extractLocation(text) {
-  let loc = null;
-
-  if (text.includes("in")) loc = text.split("in")[1];
-  else if (text.includes("on")) loc = text.split("on")[1];
-  else if (text.includes("at")) loc = text.split("at")[1];
-
-  if (!loc) return null;
-
-  return loc.replace("my", "").replace("the", "").trim();
-}
-
-// 🔍 SEARCH MEMORY (FIXED PROPERLY)
+// 🔍 SEARCH (AI SMART)
 async function searchMemory() {
   const query = document.getElementById("query").value.toLowerCase();
 
-  let object = null;
-
-  if (query.includes("my")) {
-    object = query.split("my")[1].trim().split(" ")[0];
-  }
-
-  if (!object) {
-    document.getElementById("result").innerText = "❌ Couldn't understand";
-    return;
-  }
-
   const snapshot = await getDocs(collection(db, "memories"));
 
-  let latest = null;
+  let best = null;
+  let bestScore = 0;
 
   snapshot.forEach(doc => {
     const data = doc.data();
 
-    if (
-      data.object &&
-      data.object.toLowerCase().trim() === object.trim()
-    ) {
-      if (!latest || data.timestamp > latest.timestamp) {
-        latest = data;
-      }
+    const score = scoreMatch(query, data.text);
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = data;
     }
   });
 
   let answer = "❌ Not found";
 
-  if (latest) {
-    answer = `${latest.object} is in ${latest.location}`;
+  if (best && bestScore > 0) {
+    answer = formatAnswer(best.text);
   }
 
   document.getElementById("result").innerText = answer;
   speak(answer);
+}
+
+// 🧠 FORMAT NICE ANSWER
+function formatAnswer(text) {
+  // extract location after in/on/at
+  let location = "";
+
+  if (text.includes("in")) location = text.split("in")[1];
+  else if (text.includes("on")) location = text.split("on")[1];
+  else if (text.includes("at")) location = text.split("at")[1];
+
+  location = location?.replace("my", "").trim();
+
+  // extract object (last word before in/on)
+  let object = text.split("in")[0].split("on")[0].split("at")[0];
+  object = object.replace("i kept", "").replace("my", "").trim();
+
+  return `${object} is in ${location}`;
 }
 
 // 🔊 SPEAK
