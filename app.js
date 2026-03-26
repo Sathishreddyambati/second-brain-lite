@@ -14,7 +14,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Speech
+// Speech setup
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const recognition = new SpeechRecognition();
 
@@ -23,7 +23,7 @@ let mode = "save";
 const recordBtn = document.getElementById("recordBtn");
 const status = document.getElementById("status");
 
-// 🎤 SAVE
+// 🎤 SAVE MIC
 recordBtn.onclick = () => {
   mode = "save";
   recognition.start();
@@ -77,14 +77,19 @@ function resetUI() {
   status.innerText = "";
 }
 
-// 🧠 BETTER OBJECT
+// 🧠 OBJECT EXTRACTION (FIXED)
 function extractObject(text) {
   const words = text.split(" ");
-  const ignore = ["i", "kept", "my", "in", "on", "at", "the"];
+
+  const ignore = [
+    "i","kept","my","in","on","at","the",
+    "where","is","what","did","put","have"
+  ];
+
   return words.find(w => !ignore.includes(w));
 }
 
-// 📍 LOCATION
+// 📍 LOCATION EXTRACTION
 function extractLocation(text) {
   if (text.includes("in")) return text.split("in")[1].trim();
   if (text.includes("on")) return text.split("on")[1].trim();
@@ -92,10 +97,16 @@ function extractLocation(text) {
   return null;
 }
 
-// 🔍 SEARCH
+// 🔍 SEARCH (FIXED LOGIC)
 async function searchMemory() {
   const query = document.getElementById("query").value.toLowerCase();
+
   const object = extractObject(query);
+
+  if (!object) {
+    showToast("❌ Couldn't understand question");
+    return;
+  }
 
   const snapshot = await getDocs(collection(db, "memories"));
 
@@ -104,7 +115,10 @@ async function searchMemory() {
   snapshot.forEach(doc => {
     const data = doc.data();
 
-    if (data.object.includes(object) || object.includes(data.object)) {
+    if (
+      data.object.toLowerCase().includes(object) ||
+      object.includes(data.object.toLowerCase())
+    ) {
       best = data;
     }
   });
@@ -112,14 +126,14 @@ async function searchMemory() {
   let result = "❌ Not found";
 
   if (best) {
-    result = `📍 Your ${best.object} is ${best.location}`;
+    result = `📍 Your ${best.object} is in ${best.location}`;
   }
 
   document.getElementById("result").innerText = result;
   speak(result);
 }
 
-// 🔊 VOICE
+// 🔊 SPEAK
 function speak(text) {
   const msg = new SpeechSynthesisUtterance(text);
   speechSynthesis.speak(msg);
