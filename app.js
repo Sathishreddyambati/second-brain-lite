@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Firebase config
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDW1OHe8pfRrJFM1UUaIkCca57CppVJD3k",
   authDomain: "secondbrain-87cd7.firebaseapp.com",
@@ -14,140 +14,102 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Speech setup
+// Speech
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const recognition = new SpeechRecognition();
 
-let mode = "save";
-
-const recordBtn = document.getElementById("recordBtn");
+const mic = document.getElementById("micCircle");
 const status = document.getElementById("status");
 
-// 🎤 SAVE MIC
-recordBtn.onclick = () => {
-  mode = "save";
+// 🎤 MIC CLICK
+mic.onclick = () => {
   recognition.start();
-  recordBtn.classList.add("listening");
+  mic.classList.add("active");
   status.innerText = "Listening...";
-};
-
-// 🎤 ASK MIC
-document.getElementById("askMicBtn").onclick = () => {
-  mode = "ask";
-  recognition.start();
-  status.innerText = "Ask your question...";
 };
 
 // 🎙️ RESULT
 recognition.onresult = async (event) => {
   const text = event.results[0][0].transcript.toLowerCase();
-  document.getElementById("textOutput").innerText = text;
+  status.innerText = text;
 
-  if (mode === "save") {
-    const object = extractObject(text);
-    const location = extractLocation(text);
+  const object = getObject(text);
+  const location = getLocation(text);
 
-    if (!object || !location) {
-      showToast("❌ Couldn't understand");
-      resetUI();
-      return;
-    }
-
-    await addDoc(collection(db, "memories"), {
-      object,
-      location,
-      text,
-      timestamp: Date.now()
-    });
-
-    showToast("✅ Memory Saved");
-    speak("Saved");
-
-  } else {
-    document.getElementById("query").value = text;
-    searchMemory();
+  if (!object || !location) {
+    speak("I couldn't understand");
+    mic.classList.remove("active");
+    return;
   }
 
-  resetUI();
+  await addDoc(collection(db, "memories"), {
+    object,
+    location,
+    timestamp: Date.now()
+  });
+
+  speak("Saved");
+  mic.classList.remove("active");
 };
 
-// RESET UI
-function resetUI() {
-  recordBtn.classList.remove("listening");
-  status.innerText = "";
-}
-
-// 🧠 OBJECT EXTRACTION (FIXED)
-function extractObject(text) {
+// 🧠 GET OBJECT (FIXED)
+function getObject(text) {
   const words = text.split(" ");
+  const ignore = ["i","kept","my","in","on","at","the"];
 
-  const ignore = [
-    "i","kept","my","in","on","at","the",
-    "where","is","what","did","put","have"
-  ];
-
-  return words.find(w => !ignore.includes(w));
+  for (let w of words) {
+    if (!ignore.includes(w)) return w;
+  }
+  return null;
 }
 
-// 📍 LOCATION EXTRACTION
-function extractLocation(text) {
+// 📍 GET LOCATION
+function getLocation(text) {
   if (text.includes("in")) return text.split("in")[1].trim();
   if (text.includes("on")) return text.split("on")[1].trim();
   if (text.includes("at")) return text.split("at")[1].trim();
   return null;
 }
 
-// 🔍 SEARCH (FIXED LOGIC)
+// 🔍 SEARCH (FIXED STRONG LOGIC)
 async function searchMemory() {
   const query = document.getElementById("query").value.toLowerCase();
 
-  const object = extractObject(query);
+  let object = null;
 
-  if (!object) {
-    showToast("❌ Couldn't understand question");
-    return;
+  // Extract object from question
+  if (query.includes("my")) {
+    object = query.split("my")[1].trim().split(" ")[0];
   }
 
   const snapshot = await getDocs(collection(db, "memories"));
 
-  let best = null;
+  let latest = null;
 
   snapshot.forEach(doc => {
     const data = doc.data();
 
-    if (
-      data.object.toLowerCase().includes(object) ||
-      object.includes(data.object.toLowerCase())
-    ) {
-      best = data;
+    if (data.object === object) {
+      if (!latest || data.timestamp > latest.timestamp) {
+        latest = data;
+      }
     }
   });
 
-  let result = "❌ Not found";
+  let answer = "Not found";
 
-  if (best) {
-    result = `📍 Your ${best.object} is in ${best.location}`;
+  if (latest) {
+    answer = `${latest.object} is on ${latest.location}`;
   }
 
-  document.getElementById("result").innerText = result;
-  speak(result);
+  document.getElementById("result").innerText = answer;
+  speak(answer);
 }
 
 // 🔊 SPEAK
 function speak(text) {
   const msg = new SpeechSynthesisUtterance(text);
   speechSynthesis.speak(msg);
-}
-
-// 🔔 TOAST
-function showToast(msg) {
-  const toast = document.getElementById("toast");
-  toast.innerText = msg;
-  toast.style.display = "block";
-
-  setTimeout(() => {
-    toast.style.display = "none";
-  }, 2000);
 }
 
 window.searchMemory = searchMemory;
