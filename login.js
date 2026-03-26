@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDW1OHe8pfRrJFM1UUaIkCca57CppVJD3k",
   authDomain: "secondbrain-87cd7.firebaseapp.com",
@@ -10,36 +11,56 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Recaptcha
+// 🔥 INIT RECAPTCHA (IMPORTANT)
 window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha', {
-  size: 'normal'
+  size: 'normal',
+  callback: () => {
+    console.log("Recaptcha verified");
+  }
 });
 
-// Send OTP
+// 📲 SEND OTP
 window.sendOTP = async function () {
-  const phone = document.getElementById("phone").value;
+  let phone = document.getElementById("phone").value;
 
-  const appVerifier = window.recaptchaVerifier;
+  // 🔥 AUTO ADD +91
+  if (!phone.startsWith("+91")) {
+    phone = "+91" + phone;
+  }
 
-  const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
+  try {
+    const appVerifier = window.recaptchaVerifier;
 
-  window.confirmationResult = confirmationResult;
+    const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
 
-  alert("OTP Sent");
+    window.confirmationResult = confirmationResult;
+
+    alert("✅ OTP Sent Successfully");
+
+  } catch (error) {
+    console.error(error);
+    alert("❌ Failed to send OTP: " + error.message);
+  }
 };
 
-// Verify OTP
+// 🔐 VERIFY OTP
 window.verifyOTP = async function () {
   const otp = document.getElementById("otp").value;
 
-  const result = await window.confirmationResult.confirm(otp);
+  try {
+    const result = await window.confirmationResult.confirm(otp);
 
-  const user = result.user;
+    const user = result.user;
 
-  // Save login
-  localStorage.setItem("user", JSON.stringify(user));
+    // Save user locally
+    localStorage.setItem("user", JSON.stringify(user));
 
-  alert("Login Success");
+    alert("✅ Login Successful");
 
-  window.location.href = "index.html";
+    window.location.href = "index.html";
+
+  } catch (error) {
+    console.error(error);
+    alert("❌ Invalid OTP");
+  }
 };
