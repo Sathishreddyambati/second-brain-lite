@@ -14,97 +14,126 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 🎤 Speech
+// Speech
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const recognition = new SpeechRecognition();
 
-const recordBtn = document.getElementById("recordBtn");
+let mode = "save";
 
-// 🎙️ Start recording
+const recordBtn = document.getElementById("recordBtn");
+const status = document.getElementById("status");
+
+// 🎤 SAVE
 recordBtn.onclick = () => {
-  recordBtn.innerText = "🎙️ Listening...";
+  mode = "save";
   recognition.start();
+  recordBtn.classList.add("listening");
+  status.innerText = "Listening...";
 };
 
-// 🎙️ When speech received
+// 🎤 ASK MIC
+document.getElementById("askMicBtn").onclick = () => {
+  mode = "ask";
+  recognition.start();
+  status.innerText = "Ask your question...";
+};
+
+// 🎙️ RESULT
 recognition.onresult = async (event) => {
   const text = event.results[0][0].transcript.toLowerCase();
   document.getElementById("textOutput").innerText = text;
 
-  // 🔥 Extract object + location
-  const object = extractObject(text);
-  const location = extractLocation(text);
+  if (mode === "save") {
+    const object = extractObject(text);
+    const location = extractLocation(text);
 
-  if (!object || !location) {
-    speak("I couldn't understand properly");
-    recordBtn.innerText = "🎤 Speak";
-    return;
+    if (!object || !location) {
+      showToast("❌ Couldn't understand");
+      resetUI();
+      return;
+    }
+
+    await addDoc(collection(db, "memories"), {
+      object,
+      location,
+      text,
+      timestamp: Date.now()
+    });
+
+    showToast("✅ Memory Saved");
+    speak("Saved");
+
+  } else {
+    document.getElementById("query").value = text;
+    searchMemory();
   }
 
-  await addDoc(collection(db, "memories"), {
-    object,
-    location,
-    text,
-    timestamp: Date.now()
-  });
-
-  recordBtn.innerText = "🎤 Speak";
-  speak("Saved successfully");
+  resetUI();
 };
 
-// 🔍 EXTRACT OBJECT
-function extractObject(text) {
-  const words = text.split(" ");
-  const ignore = ["i", "kept", "my", "in", "at", "on"];
-
-  for (let word of words) {
-    if (!ignore.includes(word)) {
-      return word;
-    }
-  }
-  return null;
+// RESET UI
+function resetUI() {
+  recordBtn.classList.remove("listening");
+  status.innerText = "";
 }
 
-// 📍 EXTRACT LOCATION
+// 🧠 BETTER OBJECT
+function extractObject(text) {
+  const words = text.split(" ");
+  const ignore = ["i", "kept", "my", "in", "on", "at", "the"];
+  return words.find(w => !ignore.includes(w));
+}
+
+// 📍 LOCATION
 function extractLocation(text) {
-  if (text.includes("in")) {
-    return text.split("in")[1].trim();
-  }
+  if (text.includes("in")) return text.split("in")[1].trim();
+  if (text.includes("on")) return text.split("on")[1].trim();
+  if (text.includes("at")) return text.split("at")[1].trim();
   return null;
 }
 
 // 🔍 SEARCH
 async function searchMemory() {
   const query = document.getElementById("query").value.toLowerCase();
-
   const object = extractObject(query);
 
   const snapshot = await getDocs(collection(db, "memories"));
 
-  let found = null;
+  let best = null;
 
   snapshot.forEach(doc => {
     const data = doc.data();
 
-    if (data.object === object) {
-      found = data;
+    if (data.object.includes(object) || object.includes(data.object)) {
+      best = data;
     }
   });
 
-  let resultText = "I couldn't find it";
+  let result = "❌ Not found";
 
-  if (found) {
-    resultText = `Your ${found.object} is in ${found.location}`;
+  if (best) {
+    result = `📍 Your ${best.object} is ${best.location}`;
   }
 
-  document.getElementById("result").innerText = resultText;
-  speak(resultText);
+  document.getElementById("result").innerText = result;
+  speak(result);
 }
 
-// 🔊 SPEAK
+// 🔊 VOICE
 function speak(text) {
   const msg = new SpeechSynthesisUtterance(text);
   speechSynthesis.speak(msg);
+}
+
+// 🔔 TOAST
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.innerText = msg;
+  toast.style.display = "block";
+
+  setTimeout(() => {
+    toast.style.display = "none";
+  }, 2000);
 }
 
 window.searchMemory = searchMemory;
