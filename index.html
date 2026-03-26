@@ -6,17 +6,29 @@
 </head>
 <body>
 
-<h1>🧠 Second Brain Lite</h1>
+<div class="container">
 
-<button id="recordBtn">🎤 Speak</button>
-<p id="textOutput"></p>
+  <h1>🧠 Second Brain Lite</h1>
 
-<input type="text" id="query" placeholder="Ask something...">
-<button onclick="searchMemory()">Ask</button>
+  <!-- MIC SAVE -->
+  <button id="recordBtn" class="mic-btn">🎤 Tap to Remember</button>
+  <p id="status"></p>
+  <p id="textOutput"></p>
 
-<p id="result"></p>
+  <!-- ASK SECTION -->
+  <div class="ask-box">
+    <input type="text" id="query" placeholder="Ask your brain...">
+    <button onclick="searchMemory()">Ask</button>
+    <button id="askMicBtn">🎤</button>
+  </div>
 
-<!-- ✅ ONLY THIS SCRIPT -->
+  <p id="result"></p>
+
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
 <script type="module" src="app.js"></script>
 
 </body>
